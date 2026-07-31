@@ -19,12 +19,15 @@ SO Suportados   : Linux (Ubuntu/Debian/Fedora/Arch), Windows 11, WSL, macOS
 
 | Plataforma | Shell | Package Manager | Bun | OmniRouter |
 |------------|-------|----------------|-----|------------|
-| Linux (apt) | bash | apt | ✅ | ✅ |
-| Linux (dnf) | bash | dnf | ✅ | ✅ |
-| Linux (pacman) | bash | pacman | ✅ | ✅ |
-| Windows 11 | PowerShell | winget/choco | ✅ | ✅ |
-| WSL 1/2 | bash | apt (Ubuntu on WSL) | ✅ | ✅ |
+| Ubuntu e derivados (Debian, Mint, Pop!_OS, Zorin, Kubuntu, Xubuntu) | bash | apt | ✅ | ✅ |
+| Fedora e derivados (Nobara, Ultramarine, Rocky, Alma) | bash | dnf / rpm-ostree | ✅ | ✅ |
+| Arch e derivados (Manjaro, EndeavourOS) | bash | pacman | ✅ | ✅ |
+| Windows 11 nativo | PowerShell | winget/choco | ✅ | ✅ |
+| WSL 1/2 | bash | apt (distro do WSL) | ✅ | ✅ |
 | macOS | zsh | brew | ✅ | ✅ |
+
+> 💡 A detecção de distros derivadas usa o campo `ID_LIKE` do `/etc/os-release`
+> (ex.: Linux Mint e Pop!_OS reportam `ubuntu`; Nobara reporta `fedora`).
 
 ## 📁 Estrutura de Diretórios
 

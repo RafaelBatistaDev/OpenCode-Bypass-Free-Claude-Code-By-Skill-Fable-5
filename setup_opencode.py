@@ -50,7 +50,62 @@ PROXY_DIR  = AQUI / "Proxy"
 SISTEMA = platform.system().lower()  # 'linux', 'windows', 'darwin'
 IS_WINDOWS = SISTEMA == "windows"
 IS_WSL = False
-DISTRO = ""  # 'ubuntu', 'debian', 'fedora', 'arch', etc.
+DISTRO = ""      # 'ubuntu', 'debian', 'fedora', 'arch', 'linuxmint', ...
+ID_LIKE = ""     # família declarada no os-release: 'ubuntu', 'fedora', ...
+FAMILIA = ""     # 'deb', 'rpm', 'arch', 'brew', 'win' — p/ gerenciador de pacotes
+
+
+def detectar_familia() -> str:
+    """
+    Resolve a família de gerenciador de pacotes a partir da distro.
+
+    Derivados (Linux Mint, Pop!_OS, Zorin, Kubuntu → ubuntu/debian;
+    Nobara, Ultramarine, Rocky, Alma → fedora/rhel) são identificados
+    pelo campo ID_LIKE do /etc/os-release.
+
+    Returns:
+        'deb' (apt), 'rpm' (dnf/yum), 'arch' (pacman), 'brew' (macOS)
+        ou 'win' (Windows nativo).
+    """
+    global DISTRO, ID_LIKE
+
+    if IS_WINDOWS:
+        return "win"
+
+    # Lê ID_LIKE de /etc/os-release quando disponível
+    if not ID_LIKE and Path("/etc/os-release").exists():
+        try:
+            with open("/etc/os-release") as f:
+                dados = dict(
+                    linha.strip().split("=", 1)
+                    for linha in f
+                    if "=" in linha.strip()
+                )
+            ID_LIKE = dados.get("ID_LIKE", "").lower().strip('"')
+        except Exception:
+            pass
+
+    if DISTRO in ("debian", "ubuntu") or any(p in ID_LIKE for p in ("debian", "ubuntu")):
+        return "deb"
+    if DISTRO in ("fedora", "rhel", "centos", "rocky", "alma") or any(
+        p in ID_LIKE for p in ("fedora", "rhel", "centos")
+    ):
+        return "rpm"
+    if DISTRO == "arch" or "arch" in ID_LIKE:
+        return "arch"
+    if SISTEMA == "darwin":
+        return "brew"
+    # Fallback: detecta pelo gerenciador instalado
+    if shutil.which("apt"):
+        return "deb"
+    if shutil.which("dnf") or shutil.which("yum"):
+        return "rpm"
+    if shutil.which("pacman"):
+        return "arch"
+    if shutil.which("brew"):
+        return "brew"
+    return ""
+
 
 if SISTEMA == "linux":
     # Detecta WSL
@@ -67,20 +122,26 @@ if SISTEMA == "linux":
                     for linha in f
                     if "=" in linha.strip()
                 )
-            DISTRO = dados.get("ID", "").lower()
+            DISTRO = dados.get("ID", "").lower().strip('"')
+            ID_LIKE = dados.get("ID_LIKE", "").lower().strip('"')
         except Exception:
             pass
     elif Path("/etc/debian_version").exists():
         DISTRO = "debian"
+        ID_LIKE = "debian"
     elif Path("/etc/fedora-release").exists():
         DISTRO = "fedora"
+        ID_LIKE = "fedora"
 
     if not DISTRO and shutil.which("apt"):
         DISTRO = "debian"
+        ID_LIKE = "debian"
     elif not DISTRO and shutil.which("dnf"):
         DISTRO = "fedora"
+        ID_LIKE = "fedora"
     elif not DISTRO and shutil.which("pacman"):
         DISTRO = "arch"
+        ID_LIKE = "arch"
 
 elif SISTEMA == "windows":
     import ctypes
@@ -94,6 +155,8 @@ elif SISTEMA == "windows":
     IS_ADMIN = _is_admin()
     print(f"  {C}ℹ️  Windows 11 nativo detectado{' (Admin)' if IS_ADMIN else ''}{N}")
 
+# Resolve a família de gerenciador de pacotes (usa ID_LIKE p/ derivados)
+FAMILIA = detectar_familia()
 
 # ─────────────────────────────────────────────
 # FUNÇÕES AUXILIARES
@@ -302,10 +365,15 @@ def passo_verificar_sistema():
             aviso("winget não encontrado — instalaremos Bun manualmente")
 
     elif IS_WSL:
-        # WSL é basicamente Linux
+        # WSL é basicamente Linux (usa a distro instalada no WSL)
         obrigatorios = ["curl"]
         Opcionais = ["git", "lsof", "fuser"]
         tudo_ok = True
+
+        if DISTRO and FAMILIA:
+            ok(f"Distro no WSL: {DISTRO} (família: {FAMILIA})")
+        else:
+            ok("WSL detectado — distro interna não identificada")
 
         for cmd in obrigatorios:
             if tem_comando(cmd):
@@ -319,13 +387,25 @@ def passo_verificar_sistema():
                 ok(f"{cmd} encontrado")
             else:
                 aviso(f"{cmd} não encontrado — opcional")
+
+        # Aviso de dependências da distro dentro do WSL (derivados incluídos)
+        if FAMILIA == "deb":
+            aviso("No WSL com Ubuntu/Debian: sudo apt install -y build-essential curl git")
+        elif FAMILIA == "rpm":
+            aviso("No WSL com Fedora: sudo dnf groupinstall 'Development Tools'")
+        elif FAMILIA == "arch":
+            aviso("No WSL com Arch: sudo pacman -S --needed base-devel curl git")
 
     else:
-        # Linux nativo (Ubuntu, Debian, Fedora, Arch, etc.)
+        # Linux nativo (Ubuntu, Debian, Fedora, Arch e derivados)
         obrigatorios = ["curl"]
         Opcionais = ["git", "lsof", "fuser"]
 
-        ok(f"Distro detectada: {DISTRO or 'desconhecida'}")
+        # Apresenta distro + família (derivados via ID_LIKE)
+        if DISTRO and FAMILIA:
+            ok(f"Distro detectada: {DISTRO} (família: {FAMILIA})")
+        else:
+            ok(f"Distro detectada: {DISTRO or 'desconhecida'}")
         tudo_ok = True
 
         for cmd in obrigatorios:
@@ -341,12 +421,16 @@ def passo_verificar_sistema():
             else:
                 aviso(f"{cmd} não encontrado — opcional")
 
-        # Aviso sobre dependências do sistema
-        if DISTRO in ("ubuntu", "debian"):
+        # Aviso sobre dependências do sistema por família de pacotes
+        # (cobre derivados: Mint/Pop!_OS/Zorin→apt, Nobara/Rocky/Alma→dnf)
+        if FAMILIA == "deb":
             aviso("Certifique-se de ter build-essential: sudo apt install -y build-essential curl git")
-        elif DISTRO == "fedora":
-            aviso("Certifique-se de ter @development-tools: sudo dnf groupinstall 'Development Tools'")
-        elif DISTRO == "arch":
+        elif FAMILIA == "rpm":
+            if shutil.which("rpm-ostree"):
+                aviso("Sistema imutável (rpm-ostree): use sudo rpm-ostree install --idempotent gcc make")
+            else:
+                aviso("Certifique-se de ter @development-tools: sudo dnf groupinstall 'Development Tools'")
+        elif FAMILIA == "arch":
             aviso("Certifique-se de ter base-devel: sudo pacman -S --needed base-devel curl git")
 
     print()
@@ -860,7 +944,7 @@ def main():
     print(f"""{M}
 ╔═══════════════════════════════════════════════════════╗
 ║  🚀 OpenCode-Bypass — Setup Universal                 ║
-║  Platforma: {SISTEMA.upper()}{" | WSL" if IS_WSL else ""}{" | " + DISTRO if DISTRO else ""}{N}{M:<33}║
+║  Platforma: {SISTEMA.upper()}{" | WSL" if IS_WSL else ""}{" | " + (DISTRO + " (" + FAMILIA + ")") if DISTRO and FAMILIA else ""}{N}{M:<33}║
 ║  Passos já concluídos são pulados automaticamente    ║
 ╚═══════════════════════════════════════════════════════╝{N}
 """)

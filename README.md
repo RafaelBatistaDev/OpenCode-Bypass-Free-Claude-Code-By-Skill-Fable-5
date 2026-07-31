@@ -112,7 +112,11 @@ A separação não é redundância — é **responsabilidade única**:
 
 ## ✅ Pré-requisitos
 
-- **Sistema operacional**: Linux (testado no Fedora Kinoite/COSMIC), macOS ou WSL2
+- **Sistema operacional**: Linux (Ubuntu e derivados, Fedora e derivados, Arch; testado no Fedora Kinoite/COSMIC), Windows 11 nativo, WSL 1/2 ou macOS
+  - **Ubuntu e derivados**: Ubuntu, Debian, Linux Mint, Pop!_OS, Zorin OS, Kubuntu, Xubuntu, etc. (gerenciador `apt`)
+  - **Fedora e derivados**: Fedora, Nobara, Ultramarine, Rocky Linux, AlmaLinux, etc. (gerenciador `dnf`/`rpm-ostree`)
+  - **Windows 11 nativo**: usa PowerShell + `winget`/`choco` (scripts `.bat` criados automaticamente)
+  - **WSL 1/2**: distribuição Linux (geralmente Ubuntu) com integração nativa
 - **curl** e **lsof** (instalados na maioria dos sistemas)
 - **Git** (opcional, para clonar)
 
