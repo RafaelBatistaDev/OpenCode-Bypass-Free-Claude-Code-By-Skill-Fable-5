@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🔓 OpenCode-Bypass
+# 🔓 Claude-Code-Bypass-Free-OpenCode
 
 **Proxy inteligente para usar Claude Code com modelos gratuitos via OpenCode**
 
