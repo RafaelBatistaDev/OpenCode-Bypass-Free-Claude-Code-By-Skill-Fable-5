@@ -1,0 +1,50 @@
+# ─── Logs ──────────────────────────────────────────────────
+*.log
+/proxy.log
+
+# ─── Sistema ──────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+\#*\#
+.\#*
+*.tmp
+*.temp
+
+# ─── Node / Bun ──────────────────────────────────────────────
+node_modules/
+bun.lockb
+bun.lock
+package-lock.json
+yarn.lock
+.pnpm-store/
+
+# ─── Python ──────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+
+# ─── IDE / Editor ────────────────────────────────────────────
+.idea/
+.vscode/
+*.sublime-*
+
+# ─── Claude Memory (local do desenvolvedor) ──────────────────
+Memory/
+
+# ─── Secrets / Env ───────────────────────────────────────────
+.env
+.env.*
+secrets.env
+*.secret.*
+
+# ─── Claude local config ─────────────────────────────────────
+.claude/settings.local.json
+.claude/settings.local.json.tmp*
